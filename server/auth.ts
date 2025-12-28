@@ -6,6 +6,9 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
 
 declare global {
   namespace Express {
