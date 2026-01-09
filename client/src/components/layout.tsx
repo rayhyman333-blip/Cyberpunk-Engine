@@ -1,3 +1,35 @@
+import { useAuth } from "@/hooks/use-auth";
+import { Link, useLocation } from "wouter";
+import { 
+  LayoutDashboard, 
+  Megaphone, 
+  Wallet, 
+  LogOut, 
+  Menu,
+  ShieldAlert,
+  Zap // Added Zap icon
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useState } from "react";
+
+export function Layout({ children }: { children: React.ReactNode }) {
+  const { user, logoutMutation } = useAuth();
+  const [location] = useLocation();
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  const navItems = [
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/campaigns", label: "Campaigns", icon: Megaphone },
+    { href: "/deposit", label: "Wallet", icon: Wallet },
+    // New Navigation Item
+    { href: "/subscribe", label: "Activate Engine", icon: Zap },
+  ];
+
+  if (user?.role === "admin") {
+    navItems.push({ href: "/payouts", label: "Payouts", icon: ShieldAlert });
+  }
+
   const NavContent = () => (
     <div className="flex flex-col h-full bg-black/90 border-r border-white/10">
       <div className="p-6">
@@ -12,6 +44,8 @@
       <nav className="flex-1 px-4 space-y-2">
         {navItems.map((item) => {
           const isActive = location === item.href;
+          const isActivateEngine = item.label === "Activate Engine";
+          
           return (
             <Link key={item.href} href={item.href}>
               <div
@@ -21,9 +55,13 @@
                     : "text-muted-foreground hover:text-white hover:bg-white/5"
                   }`}
               >
-                {/* Updated Icon logic to handle the new Zap icon and add a yellow glow */}
-                <item.icon className={`w-5 h-5 ${isActive ? "animate-pulse" : "group-hover:text-primary"} ${item.label === "Activate Engine" ? "text-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.4)]" : ""}`} />
-                <span className="font-medium tracking-wide">{item.label}</span>
+                <item.icon className={`w-5 h-5 
+                  ${isActive ? "animate-pulse" : "group-hover:text-primary"}
+                  ${isActivateEngine && !isActive ? "text-yellow-500" : ""} 
+                `} />
+                <span className={`font-medium tracking-wide ${isActivateEngine && !isActive ? "text-yellow-500/90" : ""}`}>
+                  {item.label}
+                </span>
               </div>
             </Link>
           );
@@ -51,5 +89,34 @@
       </div>
     </div>
   );
+
+  return (
+    <div className="min-h-screen bg-background text-foreground flex">
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:block w-64 fixed h-full z-30">
+        <NavContent />
+      </aside>
+
+      {/* Mobile Sidebar */}
+      <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
+        <SheetTrigger asChild>
+          <Button variant="ghost" size="icon" className="md:hidden fixed top-4 left-4 z-40 text-primary">
+            <Menu className="w-6 h-6" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="p-0 border-r border-white/10 w-72 bg-black">
+          <NavContent />
+        </SheetContent>
+      </Sheet>
+
+      {/* Main Content */}
+      <main className="flex-1 md:ml-64 p-4 md:p-8 overflow-x-hidden">
+        <div className="max-w-7xl mx-auto space-y-8 mt-12 md:mt-0">
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+}
 
 
