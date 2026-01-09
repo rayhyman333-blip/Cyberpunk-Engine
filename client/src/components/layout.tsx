@@ -7,7 +7,7 @@ import {
   LogOut, 
   Menu,
   ShieldAlert,
-  Zap // Added Zap icon for your engine
+  Zap // 1. ADDED THIS
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -22,7 +22,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/campaigns", label: "Campaigns", icon: Megaphone },
     { href: "/deposit", label: "Wallet", icon: Wallet },
-    // --- NEW SUBSCRIPTION LINK ADDED BELOW ---
+    // 2. ADDED THE NEW MENU ITEM BELOW
     { href: "/subscribe", label: "Activate Engine", icon: Zap },
   ];
 
@@ -53,7 +53,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     : "text-muted-foreground hover:text-white hover:bg-white/5"
                   }`}
               >
-                <item.icon className={`w-5 h-5 ${isActive ? "animate-pulse" : "group-hover:text-primary"} ${item.label === "Activate Engine" && !isActive ? "text-yellow-500/80" : ""}`} />
+                <item.icon className={`w-5 h-5 ${isActive ? "animate-pulse" : "group-hover:text-primary"}`} />
                 <span className="font-medium tracking-wide">{item.label}</span>
               </div>
             </Link>
@@ -111,4 +111,5 @@ export function Layout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
 
