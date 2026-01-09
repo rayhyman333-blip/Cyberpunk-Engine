@@ -12,12 +12,18 @@ import Dashboard from "@/pages/dashboard";
 import Campaigns from "@/pages/campaigns";
 import Deposit from "@/pages/deposit";
 import Payouts from "@/pages/payouts";
+// --- NEW IMPORT ADDED BELOW ---
+import SubscribePage from "@/pages/Subscribe"; 
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={AuthPage} />
       <ProtectedRoute path="/dashboard" component={Dashboard} />
+      
+      {/* --- NEW SUBSCRIPTION ROUTE ADDED BELOW --- */}
+      <ProtectedRoute path="/subscribe" component={SubscribePage} />
+      
       <ProtectedRoute path="/campaigns" component={Campaigns} />
       <ProtectedRoute path="/deposit" component={Deposit} />
       <ProtectedRoute path="/payouts" component={Payouts} />
@@ -40,3 +46,4 @@ function App() {
 }
 
 export default App;
+
