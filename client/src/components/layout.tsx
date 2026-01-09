@@ -1,15 +1,3 @@
-  // 1. Your updated navItems array (Already mostly done in your screenshot)
-  const navItems = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/campaigns", label: "Campaigns", icon: Megaphone },
-    { href: "/deposit", label: "Wallet", icon: Wallet },
-    { href: "/subscribe", label: "Activate Engine", icon: Zap }, // Ensure this matches exactly
-  ];
-
-  if (user?.role === "admin") {
-    navItems.push({ href: "/payouts", label: "Payouts", icon: ShieldAlert });
-  }
-
   const NavContent = () => (
     <div className="flex flex-col h-full bg-black/90 border-r border-white/10">
       <div className="p-6">
@@ -33,13 +21,35 @@
                     : "text-muted-foreground hover:text-white hover:bg-white/5"
                   }`}
               >
-                {/* 2. This part ensures the Zap icon glows yellow when it's the 'Activate Engine' button */}
-                <item.icon className={`w-5 h-5 ${isActive ? "animate-pulse" : "group-hover:text-primary"} ${item.label === "Activate Engine" && !isActive ? "text-yellow-500" : ""}`} />
+                {/* Updated Icon logic to handle the new Zap icon and add a yellow glow */}
+                <item.icon className={`w-5 h-5 ${isActive ? "animate-pulse" : "group-hover:text-primary"} ${item.label === "Activate Engine" ? "text-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.4)]" : ""}`} />
                 <span className="font-medium tracking-wide">{item.label}</span>
               </div>
             </Link>
           );
         })}
       </nav>
-      {/* ... rest of your file remains the same */}
+
+      <div className="p-4 border-t border-white/10 bg-black/40">
+        <div className="flex items-center justify-between mb-4 px-2">
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-white">{user?.username}</span>
+            <span className="text-xs text-primary font-mono">
+              ${((user?.balance || 0) / 100).toFixed(2)}
+            </span>
+          </div>
+          <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+        </div>
+        <Button 
+          variant="outline" 
+          className="w-full justify-start border-red-500/20 text-red-400 hover:text-red-300 hover:bg-red-500/10 hover:border-red-500/40"
+          onClick={() => logoutMutation.mutate()}
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Disconnect
+        </Button>
+      </div>
+    </div>
+  );
+
 
