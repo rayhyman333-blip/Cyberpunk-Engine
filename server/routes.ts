@@ -1,50 +1,70 @@
-import type { Express, Request, Response, NextFunction } from "express";
-import { createServer, type Server } from "http";
-import express from "express"; 
-import { setupAuth } from "./auth";
+import express from 'express';
+import Stripe from 'stripe';
 import { storage } from "./storage";
-import { api } from "@shared/routes";
-import { stripeWebhook } from "./stripe-webhook";
 
-// 1. THE GATEKEEPER: This blocks non-paying users from using AI features
-const requireSubscription = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated()) return res.sendStatus(401);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2023-10-16', // Use the 2026 current stable version
+});
+
+export async function registerRoutes(app: express.Express) {
   
-  // Only allow Admins or users who have paid for the 'agency' plan
-  if (req.user.role !== 'admin' && req.user.plan !== 'agency') {
-    return res.status(403).json({ 
-      message: "Engine Offline: Please 'Activate Engine' to start autonomous campaigns." 
-    });
-  }
-  next();
-};
+  // 1. THE WEBHOOK ROUTE (Place this before express.json middleware)
+  app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), async (req, res) => {
+    const sig = req.headers['stripe-signature'] as string;
+    let event;
 
-export async function registerRoutes(app: Express): Promise<Server> {
-  setupAuth(app);
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+    } catch (err: any) {
+      console.error(`Webhook Error: ${err.message}`);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
 
-  // 2. CONNECT WEBHOOK: Must use express.raw for signature verification
-  app.post(
-    "/api/webhooks/stripe", 
-    express.raw({ type: "application/json" }), 
-    stripeWebhook
-  );
+    // 2. THE EVENT SWITCHBOARD
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const userId = parseInt(session.metadata?.userId || "0");
+        
+        // Save the Customer ID for future renewals/cancellations
+        await storage.saveStripeCustomerId(userId, session.customer as string);
+        
+        // Unlock the engine!
+        await storage.updateSubscriptionStatus(userId, true, {
+          planStartedAt: new Date(),
+        });
+        console.log(`User ${userId} engine activated.`);
+        break;
+      }
 
-  // 3. APPLY GATING: Add 'requireSubscription' to protected routes
-  app.post(api.campaigns.create.path, requireSubscription, async (req, res) => {
-    const campaign = await storage.createCampaign({
-      ...req.body,
-      userId: req.user.id,
-      status: 'active'
-    });
-    res.status(201).json(campaign);
+      case 'invoice.paid': {
+        const invoice = event.data.object as Stripe.Invoice;
+        const user = await storage.getUserByStripeId(invoice.customer as string);
+        if (user) {
+          // Update renewal date based on the new invoice period
+          await storage.updateSubscriptionStatus(user.id, true, {
+            planRenewsAt: new Date(invoice.lines.data[0].period.end * 1000)
+          });
+        }
+        break;
+      }
+
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as Stripe.Subscription;
+        const user = await storage.getUserByStripeId(subscription.customer as string);
+        if (user) {
+          // Card failed too many times or user canceled
+          await storage.deactivateUserPlan(user.id);
+          console.log(`User ${user.id} engine deactivated.`);
+        }
+        break;
+      }
+    }
+
+    res.json({ received: true });
   });
 
-  app.get(api.analytics.get.path, requireSubscription, async (req, res) => {
-    const data = await storage.getAnalytics();
-    res.json(data);
-  });
-
-  const httpServer = createServer(app);
-  return httpServer;
+  // ... rest of your routes (Auth, Campaigns, etc.)
 }
+
 
