@@ -12,7 +12,8 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  // --- UPDATED: New method for Stripe Activation ---
+  
+  // --- NEW: Method for Stripe Activation ---
   updateUserPlan(userId: number, plan: string): Promise<User>;
 
   getCampaigns(): Promise<Campaign[]>;
@@ -47,7 +48,7 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set({ 
         plan: plan,
-        // We also ensure the user is marked as 'active' for the autonomous engine
+        // Automatically marks user as active once payment is confirmed
         active: true 
       })
       .where(eq(users.id, userId))
@@ -81,7 +82,6 @@ export class DatabaseStorage implements IStorage {
   async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
     const [newTransaction] = await db.insert(transactions).values(transaction).returning();
     
-    // Update user balance
     const user = await this.getUser(transaction.userId);
     if (user) {
       await db.update(users)
